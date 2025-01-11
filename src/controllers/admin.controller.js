@@ -51,12 +51,12 @@ if (existingUser) {
 // Register new student
 export const registerStudent = async (req, res) => {
     try {
-        const { name, rollNo,phone,address } = req.body;
+        const { name, uid,fatherPhone,aadharNumber,address } = req.body;
         const file = req.files?.photo?.[0];
          
-        const existingStudent = await Student.findOne({ rollNo });
+        const existingStudent = await Student.findOne({ uid });
         if (existingStudent) {
-            return res.status(400).json({ message: "student with this email already exists" });
+            return res.status(400).json({ message: "student with this uid already exists" });
         }
 
         let photoUrl = null;
@@ -72,9 +72,10 @@ export const registerStudent = async (req, res) => {
 
         const student = await Student.create({
             name,
-            rollNo,
-            phone,
+            uid,
+            fatherPhone,
             address,
+            aadharNumber,
             photo: photoUrl,
         });
 

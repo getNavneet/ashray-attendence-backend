@@ -1,11 +1,14 @@
 import { StaffAttendance } from "../models/StaffAttendance.model.js";
 import { StudentAttendance } from "../models/StudentAttendance.model.js";
+import { Student } from "../models/Student.model.js";
+
 import moment from "moment-timezone";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 // Function to get today's date in IST
 const getTodayDateIST = () => {
   return moment().tz("Asia/Kolkata").format("YYYY-MM-DD"); // Format: YYYY-MM-DD
 };
+
 // Function to get current IST time
 const getCurrentISTTime = () => {
   return moment().tz("Asia/Kolkata").format(); // ISO 8601 format
@@ -14,11 +17,18 @@ const getCurrentISTTime = () => {
 export const markCheckIn = async (req, res) => {
   try {
     const { userId } = req.body;
-    const file = req.files?.checkInPhoto?.[0];
+    const file = req.files?.checkinPhoto?.[0];
+    console.log(file);
+    console.log(userId);
     if (!userId) {
       return res
         .status(400)
         .json({ message: "userId is required for check-in." });
+    }
+    if (!file) {
+      return res
+        .status(400)
+        .json({ message: "photo is required for check-in." });
     }
 
     // Check if attendance already exists for today
@@ -66,7 +76,7 @@ export const markCheckIn = async (req, res) => {
 export const markCheckOut = async (req, res) => {
   try {
     const { userId } = req.body; 
-    const file = req.files?.checkOutPhoto?.[0];
+    const file = req.files?.checkoutPhoto?.[0];
 
     if (!userId) {
       return res
@@ -114,6 +124,21 @@ export const markCheckOut = async (req, res) => {
       .json({ message: "Check-out marked successfully.", attendance });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+// Get all students
+export const allStudents = async (req, res) => {
+  try {
+    const students = await Student.find();
+    // Map over the students array and return the relevant properties
+    const studentData = students.map(student => ({
+      id: student._id,
+      name: student.name,
+      photo: student.photo,
+    }));
+    res.status(200).json({ students: studentData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 

@@ -2,12 +2,12 @@ import mongoose from 'mongoose';
 
 const studentSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    rollNo: { type: String, required: true, unique: true },
+    uid: { type: String, required: true, unique: true },
     photo: { type: String },
-    phone: { type: Number },
+    aadharNumber: { type: Number },
+    fatherPhone: { type: Number },
     address: { type: String },
 });
 
 export const Student= mongoose.model('Student', studentSchema);
-
 

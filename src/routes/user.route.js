@@ -1,5 +1,5 @@
 import express from 'express';
-import { markCheckIn,markCheckOut,submitStudentAttendance } from '../controllers/staff.controller.js';
+import { markCheckIn,markCheckOut,submitStudentAttendance,allStudents } from '../controllers/staff.controller.js';
 
 import { upload } from '../middleware/multer.middleware.js';
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 router.route("/attendance/checkin").post(
         upload.fields([   //middleware provided by 
             {
-                name: "checkInPhoto",
+                name: "checkinPhoto",
                 maxCount: 1
             }
         ]),
@@ -18,7 +18,7 @@ router.route("/attendance/checkin").post(
 router.route("/attendance/checkout").post( 
         upload.fields([   //middleware provided by 
             {
-                name: "checkOutPhoto",
+                name: "checkoutPhoto",
                 maxCount: 1
             }
         ]),
@@ -28,6 +28,8 @@ router.route("/attendance/checkout").post(
 router.route("/attendance/student").post(
         submitStudentAttendance
     );
+router.get('/student/all', allStudents);
+
 
 
 
