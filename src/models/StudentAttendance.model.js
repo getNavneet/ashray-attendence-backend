@@ -6,7 +6,9 @@ const studentAttendanceSchema = new mongoose.Schema({
         ref: 'Student', 
         required: true },
     status: { type: String, required: true, enum: ['present', 'absent'] },
-    markedBy: { type: String, required: true },
+    markedBy: {  type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true },
     date: { type: String, required: true },
 });
 
