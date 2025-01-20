@@ -28,7 +28,7 @@ router.route("/attendance/checkout").post(
 router.route("/attendance/student").post(
         submitStudentAttendance
     );
-router.get('/student/all', allStudents);
+router.get('/student/all/:teacherId', allStudents);
 
 
 

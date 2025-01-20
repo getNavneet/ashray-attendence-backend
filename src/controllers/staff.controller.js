@@ -1,7 +1,7 @@
 import { StaffAttendance } from "../models/StaffAttendance.model.js";
 import { StudentAttendance } from "../models/StudentAttendance.model.js";
 import { Student } from "../models/Student.model.js";
-
+import { User } from "../models/user.model.js";
 import moment from "moment-timezone";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 // Function to get today's date in IST
@@ -126,21 +126,44 @@ export const markCheckOut = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// Get all students
+
+
+// Get all students for the teacher's class
 export const allStudents = async (req, res) => {
   try {
-    const students = await Student.find();
+    const { teacherId } = req.params; 
+    console.log("teacherId",teacherId);
+
+    const teacher = await User.findById(teacherId);
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+    console.log("teacher",teacher);
+
+
+    const classId = teacher.class; // Assuming the User model has a `class` field
+    if (!classId) {
+      return res.status(400).json({ message: "You are not assigned to a class" });
+    }
+   console.log("classId",classId);
+
+    // Fetch students belonging to the teacher's class
+    const students = await Student.find({ class: classId });
+
     // Map over the students array and return the relevant properties
     const studentData = students.map(student => ({
       id: student._id,
       name: student.name,
       photo: student.photo,
     }));
+
     res.status(200).json({ students: studentData });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 // API to mark attendance for all students
 export const submitStudentAttendance = async (req, res) => {

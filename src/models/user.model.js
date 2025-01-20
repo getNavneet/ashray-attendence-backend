@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     enum: ["admin", "teacher", "manager", "employee"],
   },
+  class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   phone: {type: Number},

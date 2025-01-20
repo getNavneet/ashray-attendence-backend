@@ -25,4 +25,4 @@ app.use('/api/v1/auth', authRoutes);
 
 // app.use('/api/v1/staff', staffRoutes);
 
-export { app }
+export { app } 
