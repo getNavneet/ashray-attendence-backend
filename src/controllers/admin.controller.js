@@ -184,7 +184,10 @@ export const todayAttendanceStaff = async (req, res) => {
 export const todayAttendanceStudents = async (req, res) => {
     try {
         const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
-        const attendance = await StudentAttendance.find({ date: today }).populate('studentId', 'name');
+        const attendance = await StudentAttendance.find({ date: today })
+  .populate('studentId', 'name')
+  .populate('markedBy', 'name');
+  
         res.status(200).json({ attendance });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -192,30 +195,70 @@ export const todayAttendanceStudents = async (req, res) => {
 };
 
 // Get attendance history for staff
-export const attendenceHistoryStaff = async (req, res) => {
+export const getStaffAttendanceById = async (req, res) => {
+    const { staffId } = req.params;
+     
     try {
-        const { startDate, endDate } = req.query;
-        const attendance = await StaffAttendance.find({
-            date: { $gte: startDate, $lte: endDate }
-        });
-        res.status(200).json({ attendance });
+      const attendanceData = await StaffAttendance.find({ user: staffId })
+        .populate('user', 'name') // Populate the 'name' field from the User model
+        .select('date checkInTime checkOutTime isForgottenCheckout') // Select specific fields to return
+        .lean(); // Convert Mongoose documents to plain JavaScript objects
+          
+
+        console.log(attendanceData);
+      if (!attendanceData || attendanceData.length === 0) {
+        return res.status(404).json({ message: 'No attendance data found for the given staff' });
+      }
+  
+      // Format response to include only the required fields
+      const formattedData = attendanceData.map((entry) => ({
+        name: entry.user.name,
+        date: entry.date,
+        checkInTime: entry.checkInTime,
+        checkOutTime: entry.checkOutTime,
+      }));
+  
+      res.status(200).json({ success: true, data: formattedData });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      console.error('Error fetching staff attendance:', error);
+      res.status(500).json({ message: 'Failed to fetch attendance data', error: error.message });
     }
-};
+  };
 
 // Get attendance history for students
-export const attendanceHistoryStudents = async (req, res) => {
+export const getStudentAttendanceById = async (req, res) => {
+    const { studentId } = req.params;
+  
     try {
-        const { startDate, endDate } = req.query;
-        const attendance = await StudentAttendance.find({
-            date: { $gte: startDate, $lte: endDate }
-        });
-        res.status(200).json({ attendance });
+      // Fetch attendance data and populate the student name and markedBy (staff name)
+      const attendanceData = await StudentAttendance.find({ studentId })
+        .populate('studentId', 'name') // Populate the 'name' field from the Student model
+        .populate('markedBy', 'name') // Populate the 'name' field of the user who marked the attendance
+        const attendanceDataStudent = await StudentAttendance.find({ studentId })
+      .populate('studentId', 'name') 
+      .populate('markedBy', 'name') 
+      .select('date status markedBy') 
+      .lean(); // Convert Mongoose documents to plain JavaScript objects
+       console.log(attendanceDataStudent)
+      // If no attendance data found
+      if (!attendanceDataStudent || attendanceDataStudent.length === 0) {
+        return res.status(404).json({ message: 'No attendance data found for the given student ID' });
+      }
+  
+      const formattedData = attendanceDataStudent.map((entry) => ({
+        studentName: entry.studentId.name,
+        date: entry.date,
+        status: entry.status,
+        markedBy: entry.markedBy.name,
+      }));
+       console.log("ffffffffffffffff")
+       console.log(formattedData)
+      res.status(200).json({ success: true, data: formattedData });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      console.error('Error fetching student attendance:', error);
+      res.status(500).json({ message: 'Failed to fetch attendance data', error: error.message });
     }
-};
+  };
 
 //create class
 export const createClass = async (req, res) => {
