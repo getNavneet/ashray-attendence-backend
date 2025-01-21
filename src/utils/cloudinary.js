@@ -19,7 +19,6 @@ const uploadOnCloudinary = async (localFilePath, folderName) => {
       folder: folderName, // Specify the folder here
     });
 
-    console.log("File uploaded to Cloudinary:", response.url);
 
     // Delete the local file from the server
     fs.unlink(localFilePath, (err) => {
@@ -29,7 +28,8 @@ const uploadOnCloudinary = async (localFilePath, folderName) => {
         console.log("Local file deleted successfully.");
       }
     });
-
+     let imgUrl=response.url;
+     imgUrl = imgUrl.replace('http://', 'https://');
     return response.url;
   } catch (error) {
     console.error("Error uploading file to Cloudinary:", error.message);
