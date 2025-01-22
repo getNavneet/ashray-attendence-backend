@@ -4,7 +4,7 @@ import { StaffAttendance } from "../models/StaffAttendance.model.js";
 import { StudentAttendance } from "../models/StudentAttendance.model.js";
 import { Class } from "../models/class.model.js";
 import moment from "moment-timezone";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary,deletePhoto } from "../utils/cloudinary.js";
 
 // Register new staff
 export const registerStaff = async (req, res) => {
@@ -113,18 +113,62 @@ export const allStaff = async (req, res) => {
     }
 };
 
-// Update staff
 export const updateStaff = async (req, res) => {
     try {
-        const { id, updates } = req.body;
-        console.log(updates)
-        const updatedStaff = await User.findByIdAndUpdate(id, updates, { new: true });
-        if (!updatedStaff) return res.status(404).json({ message: "Staff not found" });
-        res.status(200).json({ message: "Staff updated successfully", updatedStaff });
+      const { id,name,phone,password } = req.body;
+      console.log(id,name,phone,password);
+      if (!id) return res.status(400).json({ message: "Staff ID is required" });
+      // Validate and parse updates
+      //fetch staff member before updating
+      const staffMember = await User.findById(id);
+      if (!staffMember) return res.status(404).json({ message: "Staff not found" });
+
+      let updateFields = {};
+      if (name && name !== staffMember.name) updateFields.name = name;
+      if (phone && phone !== staffMember.phone) updateFields.phone = phone;
+      if (!password == "") updateFields.password = password;
+
+      // Handle photo upload
+      if (req.files?.photo?.[0]) {
+        const file = req.files.photo[0];
+        const filePath = file.path;
+        console.log(filePath)
+        let photoUrl = null;
+        // Upload to Cloudinary
+        if (filePath) {
+            photoUrl = await uploadOnCloudinary(file.path, "staff_photos");
+            console.log(photoUrl)
+            updateFields.photo=photoUrl;
+            console.log(updateFields.photo)
+        }
+      }
+           // Delete the old photo from Cloudinary
+      if (staffMember.photo) {
+        const oldPhotoUrl = staffMember.photo;
+        const publicId = oldPhotoUrl
+          .split("/")
+          .slice(-2)
+          .join("/")
+          .replace(".jpg", "")
+          .replace(".png", "")
+          .replace(".jpeg", "");
+         
+        await deletePhoto(publicId);
+      }
+
+      // Update the staff record in the database
+      const updatedStaff = await User.findByIdAndUpdate(id, updateFields, { new: true });
+      if (!updatedStaff) return res.status(404).json({ message: "Staff not found" });
+  
+      res.status(200).json({
+        message: "Staff updated successfully",
+        
+      });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      console.error("Error updating staff:", error);
+      res.status(500).json({ error: error.message });
     }
-};
+  };
 
 // Update student
 export const updateStudent = async (req, res) => {
@@ -251,8 +295,7 @@ export const getStudentAttendanceById = async (req, res) => {
         status: entry.status,
         markedBy: entry.markedBy.name,
       }));
-       console.log("ffffffffffffffff")
-       console.log(formattedData)
+       
       res.status(200).json({ success: true, data: formattedData });
     } catch (error) {
       console.error('Error fetching student attendance:', error);

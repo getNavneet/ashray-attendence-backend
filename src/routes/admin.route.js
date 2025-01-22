@@ -27,7 +27,15 @@ router.post('/createClass', createClass);
 router.get('/getAllClass', getAllClasses);
 router.get('/allStudents', allStudents);    
 router.get('/allStaff', allStaff);
-router.put('/updateStaff', updateStaff);
+router.route('/updateStaff').put(
+    upload.fields([  
+        {
+            name: "photo",
+            maxCount: 1
+        }
+    ]),
+    updateStaff
+);  
 router.put('/updateStudent', updateStudent);
 router.delete('/deleteStaff', deleteStaff);
 router.delete('/deleteStudent', deleteStudent);
