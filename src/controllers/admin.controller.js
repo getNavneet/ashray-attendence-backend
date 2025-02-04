@@ -32,7 +32,7 @@ if (existingUser) {
             photo: photoUrl,
             class: classId,
         });
-        console.log(newStaff);
+
         await Class.findByIdAndUpdate(   //here class is updated 
           classId,
           { $push: { teachers: newStaff._id } },  
@@ -50,7 +50,7 @@ export const registerStudent = async (req, res) => {
     try {
         const { name, uid, fatherPhone, aadharNumber, address, classId } = req.body;
         const file = req.files?.photo?.[0];
-        console.log(req.body)
+
         const existingStudent = await Student.findOne({ uid });
         if (existingStudent) {
             return res.status(400).json({ message: "student with this uid already exists" });
@@ -172,8 +172,8 @@ export const updateStudent = async (req, res) => {
 
 
 const existingStudent = await Student.findById(id);
-    console.log("existingStudent", existingStudent);
-    if (!existingStudent) {
+
+if (!existingStudent) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
@@ -230,7 +230,7 @@ export const deleteStaff = async (req, res) => {
       if (deletedStaff.class) {
           await Class.findByIdAndUpdate(
               deletedStaff.class,
-              { $pull: { staff: id } }, 
+              { $pull: { teachers: id } }, 
               { new: true }
           );
       }
@@ -247,7 +247,6 @@ export const deleteStaff = async (req, res) => {
 export const deleteStudent = async (req, res) => {
   try {
       const { id } = req.body;
-
       const deletedStudent = await Student.findByIdAndDelete(id);
       if (!deletedStudent) return res.status(404).json({ message: "Student not found" });
 
@@ -343,7 +342,6 @@ export const getStudentAttendanceById = async (req, res) => {
       .populate('markedBy', 'name') 
       .select('date status markedBy') 
       .lean(); // Convert Mongoose documents to plain JavaScript objects
-       console.log(attendanceDataStudent)
       // If no attendance data found
       if (!attendanceDataStudent || attendanceDataStudent.length === 0) {
         return res.status(404).json({ message: 'No attendance data found for the given student ID' });

@@ -13,50 +13,6 @@ const s3Client = new S3Client({
 });
 
 
-// const uploadToS3 = async (localFilePath, folderName) => {
-//   try {
-//     if (!localFilePath || !folderName) {
-//       throw new Error("File path and folder name are required.");
-//     }
-
-//     // Extract file name
-//     const fileName = path.basename(localFilePath);
-
-//     // Read the file content
-//     const fileStream = fs.createReadStream(localFilePath);
-
-//     // Define S3 bucket parameters
-//     const key = `${folderName}/${Date.now()}_${fileName}`;
-//     const bucketName = process.env.AWS_S3_BUCKET_NAME;
-
-//     const params = {
-//       Bucket: bucketName, // Your S3 bucket name
-//       Key: key,           // Folder and unique file name
-//       Body: fileStream,   // File stream
-//     };
-
-//     // Upload file to S3
-//     const command = new PutObjectCommand(params);
-//     const uploadResult = await s3Client.send(command);
-
-//     console.log("File uploaded successfully to S3:", `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`);
-
-//     // Delete local file after upload
-//     fs.unlink(localFilePath, (err) => {
-//       if (err) {
-//         console.error("Failed to delete local file:", err);
-//       } else {
-//         console.log("Local file deleted successfully.");
-//       }
-//     });
-
-//     // Return the file URL
-//     return `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
-//   } catch (error) {
-//     console.error("Error uploading file to S3:", error.message);
-//     return null;
-//   }
-// };
 
 const uploadToS3 = async (localFilePath, folderName) => {
   try {
