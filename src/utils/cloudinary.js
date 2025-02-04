@@ -7,6 +7,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+
 const uploadOnCloudinary = async (localFilePath, folderName) => {
   try {
     if (!localFilePath) {
@@ -18,7 +19,6 @@ const uploadOnCloudinary = async (localFilePath, folderName) => {
       resource_type: "auto",
       folder: folderName, // Specify the folder here
     });
-
 
     // Delete the local file from the server
     fs.unlink(localFilePath, (err) => {
@@ -45,5 +45,6 @@ const deletePhoto = async (publicId) => {
     console.error('Error deleting photo:', error);
   }
 };
+// deletePhoto("hu1waxrl6t6futixydk5");
 
 export { uploadOnCloudinary,deletePhoto };

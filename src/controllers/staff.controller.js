@@ -3,7 +3,7 @@ import { StudentAttendance } from "../models/StudentAttendance.model.js";
 import { Student } from "../models/Student.model.js";
 import { User } from "../models/user.model.js";
 import moment from "moment-timezone";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadToS3 } from "../utils/uploadToS3.js";
 // Function to get today's date in IST
 const getTodayDateIST = () => {
   return moment().tz("Asia/Kolkata").format("YYYY-MM-DD"); // Format: YYYY-MM-DD
@@ -18,8 +18,7 @@ export const markCheckIn = async (req, res) => {
   try {
     const { userId } = req.body;
     const file = req.files?.checkinPhoto?.[0];
-    console.log(file);
-    console.log(userId);
+    
     if (!userId) {
       return res
         .status(400)
@@ -45,14 +44,13 @@ export const markCheckIn = async (req, res) => {
         .json({ message: "Check-in already marked for today." });
     }
 
-    // Upload photo to S3
     let photoUrl = null;
-    if (file) {
-      photoUrl = await uploadOnCloudinary(file.path, "staff_checkin_photos");
-  }
-  else{
-      photoUrl = "https://res.cloudinary.com/dxkufsejm/image/upload/v1633666824/blank-profile-picture-973460_640_ewvz9d.png"
-  }
+        if (file) {
+            photoUrl = await uploadToS3(file.path, "Check_in_photos");
+        }
+        else(
+          photoUrl="https://ashraymediastorage.s3.ap-south-1.amazonaws.com/noImageAvailable.png"
+        )
 
     // Create or update attendance record
     const attendance = await StaffAttendance.findOneAndUpdate(
@@ -106,12 +104,12 @@ export const markCheckOut = async (req, res) => {
 
     // Upload photo to S3
     let photoUrl = null;
-    if (file) {
-      photoUrl = await uploadOnCloudinary(file.path, "staff_checkout_photos");
-  }
-  else{
-      photoUrl = "https://res.cloudinary.com/dxkufsejm/image/upload/v1633666824/blank-profile-picture-973460_640_ewvz9d.png"
-  }
+        if (file) {
+            photoUrl = await uploadToS3(file.path, "Check_out_photos");
+        }
+        else(
+          photoUrl="https://ashraymediastorage.s3.ap-south-1.amazonaws.com/noImageAvailable.png"
+        )
 
     // Update attendance record
     attendance.checkOutTime = currentTime;

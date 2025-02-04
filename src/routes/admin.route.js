@@ -13,7 +13,7 @@ const router = express.Router();
         registerStaff
     );
 
-    router.route("/register/student").post(
+router.route("/register/student").post(
         upload.fields([   //middleware provided by 
             {
                 name: "photo",
@@ -26,9 +26,9 @@ const router = express.Router();
 router.post('/createClass', createClass);
 router.get('/getAllClass', getAllClasses);
 router.get('/allStudents', allStudents);    
-router.get('/allStaff', allStaff);
-router.route('/updateStaff').put(
-    upload.fields([  
+router.get('/allStaff', allStaff); 
+router.route("/updateStaff").put(
+    upload.fields([   //middleware provided by 
         {
             name: "photo",
             maxCount: 1
@@ -36,7 +36,22 @@ router.route('/updateStaff').put(
     ]),
     updateStaff
 );  
-router.put('/updateStudent', updateStudent);
+
+router.route("/updateStudent").put(
+    upload.fields([   //middleware provided by 
+        {
+            name: "StudentPhoto",
+            maxCount: 1
+        }
+    ]),
+    updateStudent
+);
+
+
+// router.route("/updateStudent").put(
+//     upload.single("StudentPhoto"),  // Matches frontend field name
+//     updateStudent
+//   );
 router.delete('/deleteStaff', deleteStaff);
 router.delete('/deleteStudent', deleteStudent);
 router.get('/attendance/today/staff', todayAttendanceStaff);

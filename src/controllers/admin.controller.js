@@ -4,8 +4,7 @@ import { StaffAttendance } from "../models/StaffAttendance.model.js";
 import { StudentAttendance } from "../models/StudentAttendance.model.js";
 import { Class } from "../models/class.model.js";
 import moment from "moment-timezone";
-import { uploadOnCloudinary,deletePhoto } from "../utils/cloudinary.js";
-
+import { uploadToS3, deleteFromS3 } from "../utils/uploadToS3.js";
 // Register new staff
 export const registerStaff = async (req, res) => {
     try {
@@ -17,25 +16,15 @@ const existingUser = await User.findOne({ email });
 if (existingUser) {
     return res.status(400).json({ message: "Staff with this email already exists" });
 }
-
-
       let photoUrl = null;
-       // Upload photo to S3
-        // if (file) {
-        //     photoUrl = await uploadToS3(file.path, "staff_photos");
-        // }
-
-        //upload on cloudinary
         if (file) {
-            photoUrl = await uploadOnCloudinary(file.path, "staff_photos");
+            photoUrl = await uploadToS3(file.path, "staff_photos");
         }
-        else{
-            photoUrl = "https://res.cloudinary.com/dxkufsejm/image/upload/v1633666824/blank-profile-picture-973460_640_ewvz9d.png"
-        }
-  
-        
+        else(
+          photoUrl="https://ashraymediastorage.s3.ap-south-1.amazonaws.com/defaultAvatar.jpeg"
+        )
 
-        const staff = await User.create({
+        const newStaff = await User.create({
             name,
             role,
             email,
@@ -43,8 +32,14 @@ if (existingUser) {
             photo: photoUrl,
             class: classId,
         });
+        console.log(newStaff);
+        await Class.findByIdAndUpdate(   //here class is updated 
+          classId,
+          { $push: { teachers: newStaff._id } },  
+          { new: true }
+        );
 
-        res.status(201).json({ message: "Staff registered successfully", staff });
+        res.status(201).json({ message: "Staff registered successfully" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -55,22 +50,19 @@ export const registerStudent = async (req, res) => {
     try {
         const { name, uid, fatherPhone, aadharNumber, address, classId } = req.body;
         const file = req.files?.photo?.[0];
-         
+        console.log(req.body)
         const existingStudent = await Student.findOne({ uid });
         if (existingStudent) {
             return res.status(400).json({ message: "student with this uid already exists" });
         }
-
         let photoUrl = null;
-       // Upload photo to S3
-        // if (file) {
-        //     photoUrl = await uploadToS3(file.path, "staff_photos");
-        // }
-
-        //upload on cloudinary
         if (file) {
-            photoUrl = await uploadOnCloudinary(file.path, "student_photos");
+            photoUrl = await uploadToS3(file.path, "student_photos");
         }
+        else(
+          photoUrl="https://ashraymediastorage.s3.ap-south-1.amazonaws.com/defaultAvatar.jpeg"
+        )
+
 
         const newStudent = await Student.create({
             name,
@@ -81,13 +73,13 @@ export const registerStudent = async (req, res) => {
             photo: photoUrl,
             class: classId,
         });
-        await Class.findByIdAndUpdate(
-            classId,
-            { $push: { students: newStudent._id } }, // Push the student's ID into the Class's students array
-            { new: true }
-          );
+        await Class.findByIdAndUpdate(   //here class is updated 
+          classId,
+          { $push: { students: newStudent._id } },  
+          { new: true }
+        );
 
-        res.status(201).json({ message: "Student registered successfully", newStudent });
+        res.status(201).json({ message: "Student registered successfully" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -114,102 +106,171 @@ export const allStaff = async (req, res) => {
 };
 
 export const updateStaff = async (req, res) => {
-    try {
-      const { id,name,phone,password } = req.body;
-      console.log(id,name,phone,password);
-      if (!id) return res.status(400).json({ message: "Staff ID is required" });
-      // Validate and parse updates
-      //fetch staff member before updating
-      const staffMember = await User.findById(id);
-      if (!staffMember) return res.status(404).json({ message: "Staff not found" });
-
-      let updateFields = {};
-      if (name && name !== staffMember.name) updateFields.name = name;
-      if (phone && phone !== staffMember.phone) updateFields.phone = phone;
-      if (!password == "") updateFields.password = password;
-
-      // Handle photo upload
-      if (req.files?.photo?.[0]) {
-        const file = req.files.photo[0];
-        const filePath = file.path;
-        console.log(filePath)
-        let photoUrl = null;
-        // Upload to Cloudinary
-        if (filePath) {
-            photoUrl = await uploadOnCloudinary(file.path, "staff_photos");
-            console.log(photoUrl)
-            updateFields.photo=photoUrl;
-            console.log(updateFields.photo)
-        }
-      }
-           // Delete the old photo from Cloudinary
-      if (staffMember.photo) {
-        const oldPhotoUrl = staffMember.photo;
-        const publicId = oldPhotoUrl
-          .split("/")
-          .slice(-2)
-          .join("/")
-          .replace(".jpg", "")
-          .replace(".png", "")
-          .replace(".jpeg", "");
-         
-        await deletePhoto(publicId);
-      }
-
-      // Update the staff record in the database
-      const updatedStaff = await User.findByIdAndUpdate(id, updateFields, { new: true });
-      if (!updatedStaff) return res.status(404).json({ message: "Staff not found" });
+  try {
   
-      res.status(200).json({
-        message: "Staff updated successfully",
-        
-      });
-    } catch (error) {
-      console.error("Error updating staff:", error);
-      res.status(500).json({ error: error.message });
-    }
-  };
+      const { id, name, email, phone, password, classId } = req.body;
+      const file = req.files?.photo?.[0]; 
+    const existingUser = await User.findById(id); 
 
-// Update student
-export const updateStudent = async (req, res) => {
-    try {
-        const { id, updates } = req.body;
-        const updatedStudent = await Student.findByIdAndUpdate(id, updates, { new: true });
-        if (!updatedStudent) return res.status(404).json({ message: "Student not found" });
-        res.status(200).json({ message: "Student updated successfully", updatedStudent });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    if (!existingUser) {
+      return res.status(404).json({ message: "Staff not found" });
     }
+
+    const updates = {};
+
+    if (name && name !== existingUser.name) {
+      updates.name = name;
+    }
+
+    if (email && email !== existingUser.email) {
+      updates.email = email;
+    }
+    if (phone && phone !== existingUser.phone) {
+      updates.phone = phone;
+    }
+    if (password && password !== existingUser.password) {
+      updates.password = password;
+    }
+    if (classId && classId !== existingUser.classId) {
+      updates.class = classId;
+        await Class.findByIdAndUpdate(
+            classId,
+            { $addToSet: { teachers: id } },
+            { new: true }
+        );
+    }
+
+    if (file) {
+      let photoUrl = null;
+      if (existingUser.photo && !existingUser.photo.includes("defaultAvatar")) {
+        await deleteFromS3(existingUser.photo, "staff_photos");
+      }
+      photoUrl = await uploadToS3(file.path, "staff_photos");
+      updates.photo = photoUrl; 
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No changes detected to update" });
+    }
+
+    const updatedStaff = await User.findByIdAndUpdate(id, updates, { new: true });
+    if (!updatedStaff) {
+      return res.status(404).json({ message: "Failed to update staff" });
+    }
+
+    res.status(200).json({ message: "Staff updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateStudent = async (req, res) => {
+  try {
+    const { id, name, uid, fatherPhone, aadharNumber, address, classId } = req.body;
+    const file = req.files?.StudentPhoto?.[0]; 
+
+
+const existingStudent = await Student.findById(id);
+    console.log("existingStudent", existingStudent);
+    if (!existingStudent) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const updates = {};
+
+    if (name && name !== existingStudent.name) updates.name = name;
+    if (uid && uid !== existingStudent.uid) updates.uid = uid;
+    if (fatherPhone && fatherPhone !== existingStudent.fatherPhone)
+      updates.fatherPhone = fatherPhone;
+    if (aadharNumber && aadharNumber !== existingStudent.aadharNumber)
+      updates.aadharNumber = aadharNumber;
+    if (address && address !== existingStudent.address) updates.address = address;
+    if (classId && classId !== existingStudent.class?._id) {
+      updates.class = classId;
+        await Class.findByIdAndUpdate(
+            classId,
+            { $addToSet: { students: id } }, 
+            { new: true }
+        );
+    }
+
+
+    if (file) {
+      let photoUrl = null;
+      if (existingStudent.photo && !existingStudent.photo.includes('defaultAvatar')) {
+        await deleteFromS3(existingStudent.photo, 'student_photos');
+      }
+      photoUrl = await uploadToS3(file.path, 'student_photos');
+      updates.photo = photoUrl; 
+    }
+
+    // Update student with the new data
+    const updatedStudent = await Student.findByIdAndUpdate(id, updates, { new: true });
+    if (!updatedStudent) {
+      return res.status(404).json({ message: 'Failed to update student' });
+    }
+
+    res.status(200).json({
+      message: 'Student updated successfully',
+      
+    });
+  } catch (error) {
+    console.error('Error updating student:', error.message);
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Delete staff
 export const deleteStaff = async (req, res) => {
-    try {
-        const { id } = req.body;
-        const deletedStaff = await User.findByIdAndDelete(id);
-        if (!deletedStaff) return res.status(404).json({ message: "Staff not found" });
-        res.status(200).json({ message: "Staff deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+      const { id } = req.body;
+      const deletedStaff = await User.findByIdAndDelete(id);
+      if (!deletedStaff) return res.status(404).json({ message: "Staff not found" });
+      if (deletedStaff.class) {
+          await Class.findByIdAndUpdate(
+              deletedStaff.class,
+              { $pull: { staff: id } }, 
+              { new: true }
+          );
+      }
+      if (deletedStaff.photo && !deletedStaff.photo.includes("defaultAvatar")) {
+          await deleteFromS3(deletedStaff.photo, "staff_photos");
+      }
+
+      res.status(200).json({ message: "Staff deleted successfully" });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
 };
 
-// Delete student
 export const deleteStudent = async (req, res) => {
-    try {
-        const { id } = req.body;
-        const deletedStudent = await Student.findByIdAndDelete(id);
-        if (!deletedStudent) return res.status(404).json({ message: "Student not found" });
-        res.status(200).json({ message: "Student deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+      const { id } = req.body;
+
+      const deletedStudent = await Student.findByIdAndDelete(id);
+      if (!deletedStudent) return res.status(404).json({ message: "Student not found" });
+
+      if (deletedStudent.class) {
+          await Class.findByIdAndUpdate(
+              deletedStudent.class,
+              { $pull: { students: id } }, // Remove student from class
+              { new: true }
+          );
+      }
+
+      if (deletedStudent.photo && !deletedStudent.photo.includes("defaultAvatar")) {
+          await deleteFromS3(deletedStudent.photo, "student_photos");
+      }
+
+      res.status(200).json({ message: "Student deleted successfully" });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
 };
 
-// Get today's attendance for staff
 export const todayAttendanceStaff = async (req, res) => {
     try {
-        // Get today's date in IST (format YYYY-MM-DD)
         const todayDate = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
 
         // Find attendance records for today
@@ -249,7 +310,6 @@ export const getStaffAttendanceById = async (req, res) => {
         .lean(); // Convert Mongoose documents to plain JavaScript objects
           
 
-        console.log(attendanceData);
       if (!attendanceData || attendanceData.length === 0) {
         return res.status(404).json({ message: 'No attendance data found for the given staff' });
       }
