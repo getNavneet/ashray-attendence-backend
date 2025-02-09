@@ -130,20 +130,17 @@ export const markCheckOut = async (req, res) => {
 export const allStudents = async (req, res) => {
   try {
     const { teacherId } = req.params; 
-    console.log("teacherId",teacherId);
 
     const teacher = await User.findById(teacherId);
     if (!teacher) {
       return res.status(404).json({ message: "Teacher not found" });
     }
-    console.log("teacher",teacher);
 
 
     const classId = teacher.class; // Assuming the User model has a `class` field
     if (!classId) {
       return res.status(400).json({ message: "You are not assigned to a class" });
     }
-   console.log("classId",classId);
 
     // Fetch students belonging to the teacher's class
     const students = await Student.find({ class: classId });
